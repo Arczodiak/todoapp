@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do App - Browser Client</title>
+</head>
+<body>
+    <h1>To-Do App</h1>
+
+    <div>
+        <h3>Register/Login</h3>
+        <input id="username" type="text" placeholder="Username">
+        <input id="password" type="password" placeholder="Password">
+        <button id="registerBtn">Register</button>
+        <button id="loginBtn">Login</button>
+    </div>
+
+    <!-- Task section, initially hidden -->
+    <div id="taskSection" style="display: none;">
+        <h3>Add Task</h3>
+        <input id="taskTitle" type="text" placeholder="Task Title">
+        <input id="taskDescription" type="text" placeholder="Task Description">
+        <button id="addTaskBtn">Add Task</button>
+
+        <h3>Your Tasks</h3>
+        <ul id="taskList"></ul>
+    </div>
+
+    <script>
+        const apiUrl = 'http://localhost:3000';
+        let token = '';
+
+        // Register a new user
+        document.getElementById('registerBtn').addEventListener('click', async () => {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const res = await fetch(`${apiUrl}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const result = await res.json();
+            alert(result.message);
+        });
+
+        // Log in the user
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const res = await fetch(`${apiUrl}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            if (data.token) {
+                token = data.token;
+                // Show the task section after successful login
+                document.getElementById('taskSection').style.display = 'block';
+                loadTasks();  // Load tasks after login
+            } else {
+                alert(data.error);
+            }
+        });
+
+        // Load tasks
+        async function loadTasks() {
+            const res = await fetch(`${apiUrl}/tasks`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const tasks = await res.json();
+            const taskList = document.getElementById('taskList');
+            taskList.innerHTML = tasks.map(task =>
+                `<li>${task.title} - ${task.description}</li>`
+            ).join('');
+        }
+
+        // Add a task
+        document.getElementById('addTaskBtn').addEventListener('click', async () => {
+            const title = document.getElementById('taskTitle').value;
+            const description = document.getElementById('taskDescription').value;
+            const res = await fetch(`${apiUrl}/tasks`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ title, description, dueDate: new Date().toISOString() })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                loadTasks(); // Reload tasks to display the new task
+            } else {
+                alert(data.error);
+            }
+        });
+    </script>
+</body>
+</html>
